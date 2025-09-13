@@ -1,0 +1,1 @@
+### Ensure environment variable GIST_TOK is set.
