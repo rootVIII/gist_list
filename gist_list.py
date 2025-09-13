@@ -58,7 +58,6 @@ class GistList:
 
     def search_gists_txt(self, text: str):
         for gist in self.process_gists():
-            gist = self.parse_gist(gist)
             val = text.lower()
             if val in gist['description'].lower() or val in gist['filename'].lower() \
                     or val in gist['language'].lower() or val in gist['type']:
@@ -66,7 +65,6 @@ class GistList:
 
     def search_gists_ext(self, text: str):
         for gist in self.process_gists():
-            gist = self.parse_gist(gist)
             if gist['description'].lower().endswith(text.lower()):
                 pprint(gist)
 
@@ -86,17 +84,17 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-    try:
-        client = GistList()
-        if args.all:
-            client.get_gist_list()
-        elif args.txt:
-            client.search_gists_txt(args.txt)
-        elif args.ext:
-            client.search_gists_ext(args.ext)
-        else:
-            parser.print_help()
-            raise RuntimeError('No command line options provided.')
-    except Exception as err:
-        print(err)
-        exit(1)
+    # try:
+    client = GistList()
+    if args.all:
+        client.get_gist_list()
+    elif args.txt:
+        client.search_gists_txt(args.txt)
+    elif args.ext:
+        client.search_gists_ext(args.ext)
+    else:
+        parser.print_help()
+        raise RuntimeError('No command line options provided.')
+    # except Exception as err:
+    #     print(err)
+    #     exit(1)
