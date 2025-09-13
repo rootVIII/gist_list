@@ -2,6 +2,7 @@ from argparse import ArgumentParser
 from json import loads
 from os import environ
 from pprint import pprint
+from typing import Any
 from urllib.request import Request, urlopen
 
 
@@ -18,18 +19,44 @@ class GistList:
             'Authorization': f'Bearer {environ['GIST_TOK']}'
         }
 
-    def get_gists(self):
+    def get_gists(self) -> list[dict[str, Any]]:
+        """Make API call to Github API to retrieve Gists."""
         req = Request(self.url, headers=self.headers)
         with urlopen(req) as response:
             return loads(response.read().decode('utf-8'))
 
-    def get_gist_list(self):
+    def parse_gist(self, gist: dict[str, Any]) -> dict[str, Any]:
+        """Extract the required keys/values from a given gist dictionary."""
+        _, file_details = gist['files'].popitem()
+        return {
+            'filename': file_details['filename'],
+            'language': str(file_details['language']),
+            'description': gist['description'],
+            'type': file_details['type'],
+            'public': gist['public'],
+            'url': gist['html_url']
+        }
+
+    def get_gist_list(self) -> list[dict]:
+        return [self.parse_gist(gist) for gist in self.get_gists()]
+
+    def search_gists_txt(self, text: str) -> list[dict]:
+        matches = []
         for gist in self.get_gists():
-            _, file_details = gist['files'].popitem()
-            print(file_details['filename'])
-            print(file_details['language'])
-            print(file_details['type'])
-        return self.get_gists()
+            gist = self.parse_gist(gist)
+            if text.lower() in gist['description'].lower() \
+                    or text.lower() in gist['filename'].lower() \
+                    or text.lower() in gist['language'].lower():
+                matches.append(gist)
+        return matches
+
+    def search_gists_ext(self, text: str) -> list[dict]:
+        matches = []
+        for gist in self.get_gists():
+            gist = self.parse_gist(gist)
+            if gist['description'].lower().endswith(text.lower()):
+                matches.append(gist)
+        return matches
 
 
 if __name__ == "__main__":
@@ -48,12 +75,12 @@ if __name__ == "__main__":
     args = parser.parse_args()
     try:
         client = GistList()
-        if args.txt:
-            pass
-        elif args.ext:
-            pass
-        elif args.all:
+        if args.all:
             pprint(client.get_gist_list())
+        elif args.txt:
+            pprint(client.search_gists_txt(args.txt))
+        elif args.ext:
+            pprint(client.search_gists_ext(args.ext))
         else:
             parser.print_help()
             raise RuntimeError('No command line options provided.')
