@@ -16,10 +16,10 @@ class GistList:
         self.headers = {
             'Accept': 'application/vnd.github+json',
             'X-GitHub-Api-Version': '2022-11-28',
-            'Authorization': f'Bearer {environ['GIST_TOK']}'
+            'Authorization': f'Bearer {environ['GIST_TOK']}',
         }
 
-    def get_gists(self, url: str) -> list[dict[str, Any]]:
+    def get_request(self, url: str) -> Any:
         """Make API call to Github API to retrieve Gists."""
         req = Request(url, headers=self.headers)
         with urlopen(req) as response:
@@ -28,11 +28,11 @@ class GistList:
     def paginate_gists(self) -> Generator[list[dict]]:
         """Make API call to Github API to retrieve Gists."""
         index = 1
-        resp = self.get_gists(f'{self.url}?page={index}&per_page=100')
+        resp = self.get_request(f'{self.url}?page={index}&per_page=100')
         index += 1
         yield resp
         while resp:
-            resp = self.get_gists(f'{self.url}?page={index}&per_page=100')
+            resp = self.get_request(f'{self.url}?page={index}&per_page=100')
             index += 1
             yield resp
 
@@ -45,7 +45,8 @@ class GistList:
             'description': gist['description'],
             'type': file_details['type'],
             'public': gist['public'],
-            'url': gist['html_url']
+            'url': gist['html_url'],
+            'content': self.get_request(gist['url'])['files'][file_details['filename']]['content'],
         }
 
     def process_gists(self) -> Generator[dict[str, Any]]:
@@ -53,48 +54,48 @@ class GistList:
             for gist in page:
                 yield self.parse_gist(gist)
 
-    def get_gist_list(self):
-        _ = [pprint(gist) for gist in self.process_gists()]
+    def get_gist_list(self) -> Generator[dict]:
+        for gist in self.process_gists():
+            yield gist
 
-    def search_gists_txt(self, text: str):
+    def search_gists_txt(self, text: str) -> Generator[dict]:
         for gist in self.process_gists():
             val = text.lower()
-            if val in gist['description'].lower() or val in gist['filename'].lower() \
-                    or val in gist['language'].lower() or val in gist['type']:
-                pprint(gist)
+            if (
+                val in gist['description'].lower()
+                or val in gist['filename'].lower()
+                or val in gist['language'].lower()
+                or val in gist['type']
+            ):
+                yield gist
 
-    def search_gists_ext(self, text: str):
+    def search_gists_ext(self, text: str) -> Generator[dict]:
         for gist in self.process_gists():
             if gist['description'].lower().endswith(text.lower()):
-                pprint(gist)
+                yield gist
 
 
 if __name__ == "__main__":
     message = 'Usage: python3 gist_list.py -a | -t <search text> | -e <search extension>'
     message += '(select 1 option: -a|-t|-e)'
     parser = ArgumentParser(description=message)
-    parser.add_argument(
-        '-t', '--txt', help='Text to search for'
-    )
-    parser.add_argument(
-        '-e', '--ext', help='File extension to search for'
-    )
-    parser.add_argument(
-        '-a', '--all', action='store_true', help='Retrieve all gists'
-    )
+    parser.add_argument('-t', '--txt', help='Text to search for')
+    parser.add_argument('-e', '--ext', help='File extension to search for')
+    parser.add_argument('-a', '--all', action='store_true', help='Retrieve all gists')
 
     args = parser.parse_args()
-    # try:
-    client = GistList()
-    if args.all:
-        client.get_gist_list()
-    elif args.txt:
-        client.search_gists_txt(args.txt)
-    elif args.ext:
-        client.search_gists_ext(args.ext)
-    else:
-        parser.print_help()
-        raise RuntimeError('No command line options provided.')
-    # except Exception as err:
-    #     print(err)
-    #     exit(1)
+    try:
+        client = GistList()
+        if args.all:
+            result = client.get_gist_list()
+        elif args.txt:
+            result = client.search_gists_txt(args.txt)
+        elif args.ext:
+            result = client.search_gists_ext(args.ext)
+        else:
+            parser.print_help()
+            raise RuntimeError('No command line options provided.')
+    except Exception as err:
+        print(err)
+        exit(1)
+    _ = [pprint(record) for record in result]
