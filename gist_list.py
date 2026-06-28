@@ -25,7 +25,7 @@ class GistList:
         with urlopen(req) as response:
             return loads(response.read().decode('utf-8'))
 
-    def paginate_gists(self) -> Generator[list[dict]]:
+    def paginate_gists(self) -> Generator[list[dict], None, None]:
         """Make API call to Github API to retrieve Gists."""
         index = 1
         resp = self.get_request(f'{self.url}?page={index}&per_page=100')
@@ -49,16 +49,16 @@ class GistList:
             'content': self.get_request(gist['url'])['files'][file_details['filename']]['content'],
         }
 
-    def process_gists(self) -> Generator[dict[str, Any]]:
+    def process_gists(self) -> Generator[dict[str, Any], None, None]:
         for page in self.paginate_gists():
             for gist in page:
                 yield self.parse_gist(gist)
 
-    def get_gist_list(self) -> Generator[dict]:
+    def get_gist_list(self) -> Generator[dict, None, None]:
         for gist in self.process_gists():
             yield gist
 
-    def search_gists_txt(self, text: str) -> Generator[dict]:
+    def search_gists_txt(self, text: str) -> Generator[dict, None, None]:
         for gist in self.process_gists():
             val = text.lower()
             if (
@@ -69,7 +69,7 @@ class GistList:
             ):
                 yield gist
 
-    def search_gists_ext(self, text: str) -> Generator[dict]:
+    def search_gists_ext(self, text: str) -> Generator[dict, None, None]:
         for gist in self.process_gists():
             if gist['description'].lower().endswith(text.lower()):
                 yield gist
