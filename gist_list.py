@@ -81,7 +81,8 @@ if __name__ == "__main__":
     parser = ArgumentParser(description=message)
     parser.add_argument('-t', '--txt', help='Text to search for')
     parser.add_argument('-e', '--ext', help='File extension to search for')
-    parser.add_argument('-a', '--all', action='store_true', help='Retrieve all gists')
+    parser.add_argument('-a', '--all', action='store_true',
+                        help='Retrieve all gists')
 
     args = parser.parse_args()
     try:
